@@ -1,4 +1,4 @@
-from yaml import load, Loader, dump, Dumper
+from yaml import load, Loader, dump, Dumper, load_all, SafeLoader
 import os
 
 def dumpyaml(dictionary, path):
@@ -6,8 +6,11 @@ def dumpyaml(dictionary, path):
     with open(path, "w") as stream:
         stream.write(output)
 
-def loadyaml(configpath):
+def loadyaml(configpath, single=False):
     assert os.path.exists(configpath), f"'{configpath}' not found"
     with open(configpath, "r") as file:
-        data = load(file, Loader=Loader)
+        if single:
+            data = load(file, Loader=SafeLoader)
+        else:
+            data = list(load_all(file, Loader=SafeLoader))
     return data

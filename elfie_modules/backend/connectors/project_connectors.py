@@ -11,6 +11,7 @@ def processProjectBuild(project, task, status):
     elif status == "failed":
         request(BOT_SPEAK, params=[f"Their was an error while building the project {project.projectConfig.name},"
                                    f" I will this incident in error logs"])
+
 @functionalconnector("test_function")
 def testFunction(config: ElfieConfig):
     print("WORKED",config)

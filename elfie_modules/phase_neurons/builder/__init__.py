@@ -65,7 +65,7 @@ class ProjectConfig:
 
     @staticmethod
     def loadProjectConfig(absolutePath):
-        dictionary = loadyaml(absolutePath)
+        dictionary = loadyaml(absolutePath, single=True)
         if "elfieAgent" in dictionary:
             raise Exception("Not a valid project, should be instanciated with ElfieConfig")
         config = ProjectConfig(os.path.dirname(absolutePath), project_id=dictionary['project_id'])

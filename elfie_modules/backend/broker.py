@@ -1,14 +1,14 @@
 from functools import wraps
+import sys
+sys.path.append("E:\Projects\ElfiePlugins")
 
 from elfie_modules.backend.abstract import FUNCTIONAL_CONNECTORS, functionalconnector
-from elfie_modules.configs.baseConfig import *
 from werkzeug.wrappers import Request, Response
 from werkzeug.serving import run_simple
 
 from jsonrpc import JSONRPCResponseManager, dispatcher
 
 from elfie_modules.phase_neurons.config import ElfieConfig
-from elfie_modules.backend import connectors as connector_module
 from elfie_modules.backend.rpcClient import request, TOKEN
 
 import paho.mqtt.client as mqtt
@@ -20,23 +20,21 @@ from cndi.annotations import Autowired, AppInitilizer, getBeanObject
 import logging
 from elfie_modules.pipeline import BOT_SPEAK
 
-logging.basicConfig(format=f'%(asctime)s - {__name__} - %(message)s', level=logging.INFO)
+logging.basicConfig(format=f'%(asctime)s - {__name__} -  %(levelname)s - %(message)s', level=logging.INFO)
 
 clients = dict()
 
 elfie = None
 mqtt_client = None
 ip_address = None
-elfieZookeeper = ElfieZookeeper
 
 
 @Autowired()
-def setElfieAndClient(config: ElfieConfig, client: Client, ezk: ElfieZookeeper):
+def setElfieAndClient(config: ElfieConfig, client: Client):
     global elfie, mqtt_client, mongo_client, elfieZookeeper
     elfie = config
     logging.info(f"Node ID {elfie.nodeId}")
     mqtt_client = client
-    elfieZookeeper = ezk
 
 def sendInformation(client):
     client.publish("agent/added", json.dumps({
@@ -67,7 +65,7 @@ def on_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
         uid = payload['uid']
         ipaddress = payload['ip'][0]
         if ipaddress != ip_address:
-            print("Agent Added", request("getUid", host=ipaddress))
+            logging.info(f"Agent Added {request('getUid', host=ipaddress)}")
             clients[uid] = ip_address
 
 def authRequired(func):
@@ -107,6 +105,9 @@ def start(elfieConfig):
     global elfie, ip_address
     os.environ["ELFIE_CONFIG"] = elfieConfig
     initializer = AppInitilizer()
+
+    initializer.componentScan("elfie_modules.configs")
+    initializer.componentScan("elfie_connectors")
     initializer.run()
 
     mqtt_client.on_connect = on_connect
@@ -130,7 +131,7 @@ def start(elfieConfig):
 
     connectorPlugins = list(elfie.plugins.values())
     modules = map(lambda connector: importlib.import_module(connector.module), connectorPlugins)
-    for module in modules:
+    for plugin_index, module in enumerate(modules):
         connectorsList = filter(lambda x: x not in skipList, dir(module))
         for connector in connectorsList:
             classInstance = getattr(module, connector)
@@ -139,7 +140,9 @@ def start(elfieConfig):
             baseClass = '.'.join([classInstance.__base__.__module__, classInstance.__base__.__name__])
             if baseClass.endswith("backend.abstract.AbstractConnector"):
                 objInstance = classInstance()
-                objInstance.setConfig(elfie)
+                plugin = connectorPlugins[plugin_index]
+                objInstance.setConfig(elfie, plugin.configuration)
+
                 logging.info(f"Found Connector {classInstance.__module__}.{classInstance.__name__} {objInstance.name()}")
                 dispatcher[objInstance.name()] = objInstance.execute
 
@@ -162,4 +165,4 @@ def start(elfieConfig):
     # task_manager.join()
 
 if __name__ == '__main__':
-    start(os.environ[ElfieConfig.ELFIE_CONFIG])
+    start("../../elfieConfig.yml")

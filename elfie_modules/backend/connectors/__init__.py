@@ -15,3 +15,5 @@ ERROR_LIST_ERRORS="list_errors"
 ERROR_SEARCH_SOLUTION="search_solution"
 
 WEATHER="weather"
+
+PROXMOX_STATUS="proxmox_status"

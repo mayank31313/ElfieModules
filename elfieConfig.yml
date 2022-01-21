@@ -1,0 +1,64 @@
+activeEnvironment: default
+elfieAgent:
+  mqttBroker:
+    address: localhost
+    host: localhost
+    port: 1883
+  name: Elfie Rasa
+  rasaEndpoint: http://localhost:5005
+  uid: master
+load_projects: true
+mavenTemplate:
+  artifactId: elfieCreator
+  groupId: ior
+  jdkVersion: 8.0
+  mavenProjectsDir: F:\Projects
+  version: test-0.0.1
+name: Elfie
+project_id: 7dd63c5c-397d-43c6-bbde-2f7585607fde
+nodeId: 1
+projectsDir:
+- F:\Projects
+- I:\
+- D:\Projects
+- D:\test
+- C:\Users\Asus\git
+rpcConfig:
+  host: localhost
+  port: 4000
+channels:
+  jenkins:
+    url: "https://jenkins.cloud.iorcloud.ml"
+    credentials:
+      type: username_password
+      secret_key: admin
+#      secret_value: sandboxismylove
+      secret_value: jaan@123456
+  proxmox:
+    url: "192.168.46.15:8006"
+    credentials:
+      type: token_based
+      secret_key: automate_user@pam
+      secret_value: 9c4a3fe8-6bf6-47a5-993c-5c1d99e5b236
+      token: automated_user
+plugins:
+  connectors:
+    - name: ProjectConnector
+      module: elfie_modules.backend.connectors.project_connectors
+    - name: JenkinsConnector
+      module: elfie_modules.backend.connectors.jenkins_connectors
+      configuration:
+        usesChannel: jenkins
+    - name: ErrorConnector
+      module: elfie_modules.backend.connectors.error_connectors
+    - name: TaskManagerConnector
+      module: elfie_modules.backend.connectors.taskmanager_connectors
+    - name: WeatherConnector
+      module: elfie_modules.backend.connectors.weather_connectors
+    - name: CopterWrapper
+      module: elfie_connectors.externalconnectors.drone_bridge.drone_bridge_connector
+      basePath: E:\Projects\ElfiePlugins
+    - name: ProxmoxConnector
+      module: elfie_modules.backend.connectors.proxmox_connector
+      configuration:
+        usesChannel: proxmox

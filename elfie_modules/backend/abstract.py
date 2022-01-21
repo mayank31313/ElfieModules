@@ -5,14 +5,23 @@ class AbstractConnector:
     def __init__(self):
         self.config = None
         self.channel = None
+        self.configuration = dict()
 
-    def setConfig(self, config):
+    def setConfig(self, config, configuration=None):
         self.config = config
         name = self.name()
+        if configuration is not None and 'usesChannel' in configuration:
+            self.channel = list(filter(lambda elfieChannel: elfieChannel.name() == configuration['usesChannel'], self.config.channels))[0]
+            return None
+
         for channel in self.config.channels:
             if name.lower().startswith(channel.name()):
                 self.channel = channel
                 break
+    def getConfiguration(self, key):
+        if key in self.configuration:
+            return self.configuration.get(key)
+        return None
 
     def name(self):
         pass

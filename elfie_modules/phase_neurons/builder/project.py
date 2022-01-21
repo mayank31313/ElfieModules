@@ -3,9 +3,7 @@ from uuid import uuid4
 
 from elfie_modules.phase_neurons.builder.pipeplugins import PythonScriptCommand
 from elfie_modules.phase_neurons.taskmanager import TaskManager, Task
-from elfie_modules.phase_neurons.builder import ProjectConfig, ProjectTypes, ProjectLifeCycleName, ProjectLifecycle, \
-    MavenInstallCommand
-from elfie_modules.pipeline import BOT_SPEAK
+from elfie_modules.phase_neurons.builder import ProjectConfig, ProjectLifeCycleName, ProjectLifecycle
 
 
 class BuildProject:

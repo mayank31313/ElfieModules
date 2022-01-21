@@ -1,9 +1,13 @@
 import logging
-import os
+import os, sys
+
+import requests
 
 from elfie_modules.backend.channels import Credentials
 from elfie_modules.backend.connectors.jenkins_connectors import ElfieJenkinsConnector
-from elfie_modules.phase_neurons.builder.project import ProjectTypes, ProjectConfig
+from elfie_modules.backend.connectors.proxmox_connector import ElfieProxmoxConnector
+from elfie_modules.phase_neurons.builder import ProjectTypes
+from elfie_modules.phase_neurons.builder.project import ProjectConfig
 from elfie_modules.phase_neurons.elfie import loadyaml, dumpyaml
 
 class JenkinsChannel:
@@ -14,15 +18,32 @@ class JenkinsChannel:
     def __init__(self, data):
         self.jenkinsConnector = ElfieJenkinsConnector(data['url'], credentials=Credentials(**data['credentials']))
 
+class ProxmoxChannel:
+    @staticmethod
+    def name():
+        return "proxmox"
+
+    def __init__(self, data):
+        self.proxmoxConnector = ElfieProxmoxConnector(data['url'], credentials=Credentials(**data['credentials']))
+
+
 class ElfiePlugins:
     CONNECTOR='connector'
-    def __init__(self, name, module, type):
+    def __init__(self, name, module, type, configuration=None, basePath=None):
         self.name = name
         self.module = module
         self.type = type
+        self.configuration = configuration
+        if basePath is not None:
+            print("Adding Path: ", basePath)
+            sys.path.append(basePath)
+
+
 
 class ElfieConfig:
     ELFIE_CONFIG="ELFIE_CONFIG"
+    ELFIE_ENV="ELFIE_ENV"
+
     def __init__(self, data, loadProjects):
         self.loadProjects = loadProjects
         self.data = data
@@ -38,10 +59,46 @@ class ElfieConfig:
             print("Projects Loaded")
         self.loadPlugins()
 
+    def resolvePlugins(self, plugins):
+        localPlugins = list(filter(lambda plugin: 'configYaml' not in plugin or plugin['configYaml'] == '', plugins))
+        externalPlugins = filter(lambda plugin: not ('configYaml' not in plugin or plugin['configYaml'] == ''),
+                                 plugins)
+        for externalPlugin in externalPlugins:
+            localPlugins.extend(self.resolveExternalPlugins(externalPlugin))
+        return localPlugins
+
+    def resolveExternalPlugins(self, plugin: dict):
+        configYaml = str(plugin['configYaml'])
+
+        returnPlugins = list()
+        if configYaml.startswith("http") or configYaml.startswith("https"):
+            response = requests.get(configYaml)
+            yamlData = response.text
+
+        elif configYaml.startswith("file://"):
+            fileName = configYaml[7:]
+            if not os.path.exists(fileName):
+                raise FileNotFoundError(f"Config file not found at location: {fileName}")
+            plugins = loadyaml(fileName)[0]
+            plugins = list(map(lambda x: {
+                **x,
+                "name": f"{plugin['name']}.{x['name']}"
+            }, plugins))
+            returnPlugins.extend(plugins)
+
+        return returnPlugins
+
+
     def loadPlugins(self):
         if "plugins" not in self.data:
             return False
-        self.plugins = dict(map(lambda x: (x['name'],ElfiePlugins(x['name'], x['module'], ElfiePlugins.CONNECTOR)),self.data['plugins']['connectors']))
+
+        connectorPlugins = self.data['plugins']['connectors']
+        connectorPlugins = self.resolvePlugins(connectorPlugins)
+
+        self.plugins = dict(map(lambda x: (x['name'],
+                                           ElfiePlugins(type=ElfiePlugins.CONNECTOR, **x)
+                                           ),connectorPlugins))
 
 
     def loadConfig(self, data):
@@ -58,6 +115,8 @@ class ElfieConfig:
         if channels is not None:
             if JenkinsChannel.name() in channels:
                 self.channels.append(JenkinsChannel(channels[JenkinsChannel.name()]))
+            if ProxmoxChannel.name() in channels:
+                self.channels.append(ProxmoxChannel(channels[ProxmoxChannel.name()]))
 
         if "load_projects" in data:
             self.loadProjects = self.loadProjects or data['load_projects']
@@ -83,6 +142,7 @@ class ElfieConfig:
                     try:
                         projectConfig = ProjectConfig.loadProjectConfig(absolute_path)
                         self.projects[projectConfig.project_id] = projectConfig
+                        logging.info(f"Project loaded successfully: {projectConfig.name}")
                     except Exception as e:
                         logging.error(f"Exception loading project {root}")
                         continue

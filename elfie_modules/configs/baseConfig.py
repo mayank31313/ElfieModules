@@ -1,12 +1,10 @@
 from cndi.annotations import Bean
 
-from elfie_modules.backend.zoo import ElfieZookeeper
 from elfie_modules.phase_neurons.config import ElfieConfig
 from elfie_modules.phase_neurons.taskmanager import TaskManager
 from paho.mqtt.client import Client
 import os
 from elfie_modules.phase_neurons.elfie import loadyaml
-from pymongo import MongoClient
 
 @Bean()
 def getTaskManager(elfie: ElfieConfig)->TaskManager:
@@ -20,15 +18,6 @@ def getMqttClient(elfie: ElfieConfig)->Client:
     return client
 
 @Bean()
-def getElfieZookeeper(elfie: ElfieConfig)->ElfieZookeeper:
-    return ElfieZookeeper(elfie.nodeId, hosts=elfie.zookeeper['servers'])
-
-@Bean()
-def getMongoClient(elfie: ElfieConfig)->MongoClient:
-    mongo_client = MongoClient(elfie.db['connectionString'])
-    return mongo_client
-
-@Bean()
 def loadConfig()->ElfieConfig:
     configpath = os.path.join(os.getcwd(), "elfieConfig.yml")
     ELFIE_CONFIG = "ELFIE_CONFIG"
@@ -39,6 +28,10 @@ def loadConfig()->ElfieConfig:
         raise FileNotFoundError("Coundnot find elfieConfig.yml")
 
     data = loadyaml(configpath)
+    if isinstance(data, list):
+        if ElfieConfig.ELFIE_ENV not in os.environ:
+            raise NotImplementedError(f"{ElfieConfig.ELFIE_ENV} not set")
+        data = list(filter(lambda x: x['activeEnvironment'] == os.environ[ElfieConfig.ELFIE_ENV], data))[0]
+
     elfieConfig = ElfieConfig(data=data, loadProjects=True)
     return elfieConfig
-
