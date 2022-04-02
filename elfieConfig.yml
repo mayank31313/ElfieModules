@@ -41,6 +41,10 @@ channels:
       secret_key: automate_user@pam
       secret_value: 9c4a3fe8-6bf6-47a5-993c-5c1d99e5b236
       token: automated_user
+  openweatherapi:
+    credentials:
+      type: token_based
+      token: e46024399b538bcf3f625333391d3be4
 plugins:
   connectors:
     - name: ProjectConnector
@@ -55,6 +59,8 @@ plugins:
       module: elfie_modules.backend.connectors.taskmanager_connectors
     - name: WeatherConnector
       module: elfie_modules.backend.connectors.weather_connectors
+      configuration:
+        usesChannel: openweatherapi
     - name: CopterWrapper
       module: elfie_connectors.externalconnectors.drone_bridge.drone_bridge_connector
       basePath: E:\Projects\ElfiePlugins

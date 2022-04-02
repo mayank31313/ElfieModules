@@ -1,4 +1,4 @@
-from yaml import load, Loader, dump, Dumper, load_all, SafeLoader
+from yaml import load, dump, Dumper, load_all, SafeLoader
 import os
 
 def dumpyaml(dictionary, path):

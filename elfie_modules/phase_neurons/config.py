@@ -6,6 +6,7 @@ import requests
 from elfie_modules.backend.channels import Credentials
 from elfie_modules.backend.connectors.jenkins_connectors import ElfieJenkinsConnector
 from elfie_modules.backend.connectors.proxmox_connector import ElfieProxmoxConnector
+from elfie_modules.backend.connectors.weather_connectors import ElfieWeatherApiConnector
 from elfie_modules.phase_neurons.builder import ProjectTypes
 from elfie_modules.phase_neurons.builder.project import ProjectConfig
 from elfie_modules.phase_neurons.elfie import loadyaml, dumpyaml
@@ -25,6 +26,14 @@ class ProxmoxChannel:
 
     def __init__(self, data):
         self.proxmoxConnector = ElfieProxmoxConnector(data['url'], credentials=Credentials(**data['credentials']))
+
+class OpenWeatherMapAPIChannel:
+    @staticmethod
+    def name():
+        return "openweatherapi"
+
+    def __init__(self, data):
+        self.apiConnector = ElfieWeatherApiConnector(credentials=Credentials(**data['credentials']))
 
 
 class ElfiePlugins:
@@ -74,6 +83,7 @@ class ElfieConfig:
         if configYaml.startswith("http") or configYaml.startswith("https"):
             response = requests.get(configYaml)
             yamlData = response.text
+            raise NotImplementedError("Working on this part of the application")
 
         elif configYaml.startswith("file://"):
             fileName = configYaml[7:]
@@ -113,10 +123,17 @@ class ElfieConfig:
         channels = data['channels'] if 'channels' in data else None
         self.channels = list()
         if channels is not None:
-            if JenkinsChannel.name() in channels:
-                self.channels.append(JenkinsChannel(channels[JenkinsChannel.name()]))
-            if ProxmoxChannel.name() in channels:
-                self.channels.append(ProxmoxChannel(channels[ProxmoxChannel.name()]))
+            classList = [JenkinsChannel, ProxmoxChannel, OpenWeatherMapAPIChannel]
+            for classObject in classList:
+                if classObject.name() in channels:
+                    self.channels.append(classObject(channels[classObject.name()]))
+
+            # if JenkinsChannel.name() in channels:
+            #     self.channels.append(JenkinsChannel(channels[JenkinsChannel.name()]))
+            # if ProxmoxChannel.name() in channels:
+            #     self.channels.append(ProxmoxChannel(channels[ProxmoxChannel.name()]))
+            # if OpenWeatherMapAPIChannel.name() in channels:
+            #     self.channels.append(OpenWeatherMapAPIChannel(channels[OpenWeatherMapAPIChannel.name()]))
 
         if "load_projects" in data:
             self.loadProjects = self.loadProjects or data['load_projects']

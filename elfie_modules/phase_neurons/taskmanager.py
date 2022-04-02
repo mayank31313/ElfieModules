@@ -11,6 +11,8 @@ import json
 import os
 import logging
 
+from cndi.env import getContextEnvironment
+
 from elfie_modules.backend.connectors import ERROR_ADDERROR
 from elfie_modules.backend.elfie_dataclasses import ErrorModel
 from elfie_modules.backend.rpcClient import request
@@ -144,12 +146,12 @@ class TaskManager(threading.Thread):
         TaskManager.uid = agentConfig['uid']
         logging.info(self.uid)
 
-        brokerConfig = agentConfig['mqttBroker']
-
         self.mqtt_client.on_connect = self.on_mqtt_connect
         self.mqtt_client.on_message = self.on_mqtt_message
 
-        self.mqtt_client.connect(brokerConfig['host'], brokerConfig['port'])
+        mqttHost = getContextEnvironment("mqtt.host")
+        mqttPort = int(getContextEnvironment("mqtt.port"))
+        self.mqtt_client.connect(mqttHost, mqttPort)
 
 
     def on_mqtt_connect(self, client: mqtt.Client, userdata, flags, rc):
