@@ -1,5 +1,8 @@
 from functools import wraps
 import sys
+
+from cndi.env import loadEnvFromFile
+
 sys.path.append("E:\Projects\ElfiePlugins")
 
 from elfie_modules.backend.abstract import FUNCTIONAL_CONNECTORS, functionalconnector
@@ -104,6 +107,8 @@ def wrap(func, params):
 def start(elfieConfig):
     global elfie, ip_address
     os.environ["ELFIE_CONFIG"] = elfieConfig
+
+    loadEnvFromFile("../../application.yml")
     initializer = AppInitilizer()
 
     initializer.componentScan("elfie_modules.configs")

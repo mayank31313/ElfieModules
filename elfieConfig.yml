@@ -24,7 +24,7 @@ projectsDir:
 - D:\test
 - C:\Users\Asus\git
 rpcConfig:
-  host: localhost
+  host: 0.0.0.0
   port: 4000
 channels:
   jenkins:
