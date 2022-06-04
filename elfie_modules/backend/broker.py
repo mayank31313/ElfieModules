@@ -1,7 +1,8 @@
 from functools import wraps
 import sys
 
-from cndi.env import loadEnvFromFile
+from cndi.env import loadEnvFromFile, getContextEnvironment
+from cndi.initializers import AppInitilizer
 
 sys.path.append("E:\Projects\ElfiePlugins")
 
@@ -18,12 +19,12 @@ import paho.mqtt.client as mqtt
 import socket, json, os
 import importlib
 from paho.mqtt.client import Client
-from cndi.annotations import Autowired, AppInitilizer, getBeanObject
+from cndi.annotations import Autowired, getBeanObject
 
 import logging
 from elfie_modules.pipeline import BOT_SPEAK
 
-logging.basicConfig(format=f'%(asctime)s - {__name__} -  %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format=f'%(asctime)s - %(name)s -  %(levelname)s - %(message)s', level=logging.INFO)
 
 clients = dict()
 
@@ -31,12 +32,13 @@ elfie = None
 mqtt_client = None
 ip_address = None
 
+logger = logging.getLogger(__name__)
 
 @Autowired()
 def setElfieAndClient(config: ElfieConfig, client: Client):
     global elfie, mqtt_client, mongo_client, elfieZookeeper
     elfie = config
-    logging.info(f"Node ID {elfie.nodeId}")
+    logger.info(f"Node ID {elfie.nodeId}")
     mqtt_client = client
 
 def sendInformation(client):
@@ -46,7 +48,7 @@ def sendInformation(client):
     }))
 
 def on_connect(client: mqtt.Client, userdata, flags, rc):
-    logging.info("Connected with result code "+str(rc))
+    logger.info("Connected with result code "+str(rc))
 
     client.subscribe("agent/added")
     client.subscribe("agent/disconnected")
@@ -68,7 +70,7 @@ def on_message(client: mqtt.Client, userdata, msg: mqtt.MQTTMessage):
         uid = payload['uid']
         ipaddress = payload['ip'][0]
         if ipaddress != ip_address:
-            logging.info(f"Agent Added {request('getUid', host=ipaddress)}")
+            logger.info(f"Agent Added {request('getUid', host=ipaddress)}")
             clients[uid] = ip_address
 
 def authRequired(func):
@@ -120,19 +122,12 @@ def start(elfieConfig):
 
     assert elfie.agent is not None, "Not a valid agent configuration"
 
-    if "address" in elfie.agent['mqttBroker']:
-        ip_address = elfie.agent['mqttBroker']['address']
-    else:
+    ip_address = getContextEnvironment("host.address")
+    if ip_address is None:
         ip_address = socket.gethostbyname(socket.gethostname())
 
     skipList = ['AbstractConnector', 'ElfieConfig', '__builtins__', '__cached__', '__doc__', '__file__',
                 '__loader__', '__name__', '__package__', '__spec__']
-
-
-    # files = filter(lambda x: x.endswith(".py") and x != "__init__.py", os.listdir(connector_module.__path__[0]))
-    # files = list(map(lambda x: x.replace(".py", ""), files))
-    #
-    # modules = map(lambda file: importlib.import_module('.' + file, connector_module.__name__), files)
 
     connectorPlugins = list(elfie.plugins.values())
     modules = map(lambda connector: importlib.import_module(connector.module), connectorPlugins)
@@ -144,16 +139,17 @@ def start(elfieConfig):
                 continue
             baseClass = '.'.join([classInstance.__base__.__module__, classInstance.__base__.__name__])
             if baseClass.endswith("backend.abstract.AbstractConnector"):
+
                 objInstance = classInstance()
                 plugin = connectorPlugins[plugin_index]
                 objInstance.setConfig(elfie, plugin.configuration)
 
-                logging.info(f"Found Connector {classInstance.__module__}.{classInstance.__name__} {objInstance.name()}")
+                logger.info(f"Found Connector {classInstance.__module__}.{classInstance.__name__} {objInstance.name()}")
                 dispatcher[objInstance.name()] = objInstance.execute
 
     for func_name in FUNCTIONAL_CONNECTORS:
         function_info = FUNCTIONAL_CONNECTORS[func_name]
-        logging.info(f"Found Functional Connector {func_name} {function_info['name']}")
+        logger.info(f"Found Functional Connector {func_name} {function_info['name']}")
         params = dict()
         for param_name, param_type in function_info['annotations'].items():
             object_type = ".".join([param_type.__module__, param_type.__name__])
@@ -161,12 +157,13 @@ def start(elfieConfig):
 
         dispatcher[function_info['name']] = wrap(function_info['func'], params)
 
-    mqttBrokerConfig = elfie.agent['mqttBroker']
+    host = getContextEnvironment("mqtt.host")
+    port = int(getContextEnvironment("mqtt.port"))
 
-    mqtt_client.connect(mqttBrokerConfig['host'], mqttBrokerConfig['port'])
+    mqtt_client.connect(host, port)
     mqtt_client.loop_start()
 
-    run_simple(elfie.rpc['host'], elfie.rpc['port'], application)
+    run_simple("0.0.0.0", 4000, application)
     # task_manager.join()
 
 if __name__ == '__main__':

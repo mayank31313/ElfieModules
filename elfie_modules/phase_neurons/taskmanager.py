@@ -141,9 +141,9 @@ class TaskManager(threading.Thread):
     mqtt_client = mqtt.Client()
     uid = None
 
-    def __init__(self,agentConfig):
+    def __init__(self):
         super(TaskManager, self).__init__()
-        TaskManager.uid = agentConfig['uid']
+        TaskManager.uid = uuid4().__str__()
         logging.info(self.uid)
 
         self.mqtt_client.on_connect = self.on_mqtt_connect

@@ -33,4 +33,4 @@ class OpenWeatherMapAPIConnnector(AbstractConnector):
         return WEATHER
 
     def execute(self, *args):
-        return (self.channel.apiConnector.call())
+        return self.channel.apiConnector.call()

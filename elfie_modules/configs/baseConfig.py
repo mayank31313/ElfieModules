@@ -7,13 +7,13 @@ import os
 from elfie_modules.phase_neurons.elfie import loadyaml
 
 @Bean()
-def getTaskManager(elfie: ElfieConfig)->TaskManager:
-    task_manager = TaskManager(elfie.agent)
+def getTaskManager()->TaskManager:
+    task_manager = TaskManager()
     task_manager.start()
     return task_manager
 
 @Bean()
-def getMqttClient(elfie: ElfieConfig)->Client:
+def getMqttClient()->Client:
     client = Client()
     return client
 

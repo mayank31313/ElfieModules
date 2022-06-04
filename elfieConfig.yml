@@ -1,11 +1,5 @@
 activeEnvironment: default
 elfieAgent:
-  mqttBroker:
-    address: localhost
-    host: localhost
-    port: 1883
-  name: Elfie Rasa
-  rasaEndpoint: http://localhost:5005
   uid: master
 load_projects: true
 mavenTemplate:
@@ -23,16 +17,12 @@ projectsDir:
 - D:\Projects
 - D:\test
 - C:\Users\Asus\git
-rpcConfig:
-  host: 0.0.0.0
-  port: 4000
 channels:
   jenkins:
     url: "https://jenkins.cloud.iorcloud.ml"
     credentials:
       type: username_password
       secret_key: admin
-#      secret_value: sandboxismylove
       secret_value: jaan@123456
   proxmox:
     url: "192.168.46.15:8006"

@@ -5,6 +5,10 @@
 * Project Build
 * TaskManager Connector
 
+## Requirements
+
+* Mqtt Broker
+
 ## Instance Dependent Connectors
 
 * Jenkins

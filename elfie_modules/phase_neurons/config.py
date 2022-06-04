@@ -115,10 +115,7 @@ class ElfieConfig:
         self.name = data['name']
         self.projectsDir = data['projectsDir']
         self.db = data['db'] if 'db' in data else None
-        self.rpc = data['rpcConfig'] if 'rpcConfig' in data else None
         self.agent = data['elfieAgent'] if 'elfieAgent' in data else None
-        self.zookeeper = data['zookeeper'] if 'zookeeper' in data else None
-        self.mavenConfig = data['mavenTemplate']
 
         channels = data['channels'] if 'channels' in data else None
         self.channels = list()
